@@ -244,6 +244,13 @@ func _build_city() -> void:
 			add_child(lamp)
 			for bollard in range(3):
 				_box(self, "Bollard", Vector3(side * 11.9, 0.5, z - 2.0 + bollard * 1.0), Vector3(0.18, 1.0, 0.18), dark_metal)
+			# Repeating street signs and occasional benches make long runs easier to read.
+			if int(z) % 48 == 0:
+				_box(self, "StreetSignPost", Vector3(side * 12.7, 1.55, z + 5.0), Vector3(0.09, 3.1, 0.09), dark_metal, Vector3.ZERO, false)
+				_box(self, "StreetSignBoard", Vector3(side * 12.7, 2.55, z + 5.0), Vector3(0.12, 0.72, 0.95), white, Vector3.ZERO, false)
+				_box(self, "BenchSeat", Vector3(side * 13.4, 0.62, z + 7.0), Vector3(0.62, 0.12, 1.8), wood)
+				for bench_leg in [-0.65, 0.65]:
+					_box(self, "BenchLeg", Vector3(side * 13.4, 0.32, z + 7.0 + bench_leg), Vector3(0.12, 0.55, 0.12), dark_metal)
 
 	# Parked, low-detail civilian vehicles as static obstacles with visible wheels and windows.
 	_build_car(Vector3(-6.8, 0.0, -13.0), 0.0, dark_metal, glass, white)
