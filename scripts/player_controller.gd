@@ -33,7 +33,6 @@ var bob_time := 0.0
 var landing_offset := 0.0
 var was_on_floor := false
 var slide_active := false
-var crouch_toggle := false
 var slide_speed := 0.0
 
 func _ready() -> void:
@@ -66,12 +65,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	if event is InputEventMouseButton and event.pressed:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	if event is InputEventKey and event.pressed and event.physical_keycode == KEY_CTRL:
-		crouch_toggle = not crouch_toggle
 
 func _physics_process(delta: float) -> void:
 	var grounded := is_on_floor()
-	var crouching := Input.is_action_pressed("crouch") or crouch_toggle
+	var crouching := Input.is_action_pressed("crouch")
 	var sprinting := Input.is_action_pressed("sprint") and not crouching
 	var input_2d := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var wish_dir := (global_transform.basis * Vector3(input_2d.x, 0, input_2d.y)).normalized()
