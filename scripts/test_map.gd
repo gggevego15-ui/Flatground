@@ -80,14 +80,33 @@ func _build_environment() -> void:
 	env.ambient_light_energy = 0.72
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.tonemap_exposure = 1.0
+	# Forward+ screen-space effects: contact shading and subtle indirect light.
+	env.ssao_enabled = true
+	env.ssao_radius = 2.0
+	env.ssao_intensity = 1.15
+	env.ssil_enabled = true
+	env.ssil_radius = 4.0
+	env.ssil_intensity = 0.65
+	# Reflections are screen-space, so only visible geometry in the frame is reflected.
 	env.ssr_enabled = true
+	env.ssr_max_steps = 64
+	env.ssr_fade_in = 0.15
+	env.ssr_fade_out = 2.0
+	env.glow_enabled = true
+	env.glow_intensity = 0.22
+	env.glow_bloom = 0.04
 	world.environment = env
 	add_child(world)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-48, -28, 0)
 	sun.light_energy = 1.15
 	sun.shadow_enabled = true
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	sun.directional_shadow_blend_splits = true
 	sun.directional_shadow_max_distance = 120.0
+	sun.shadow_bias = 0.035
+	sun.shadow_normal_bias = 1.4
+	sun.shadow_blur = 1.0
 	add_child(sun)
 
 
