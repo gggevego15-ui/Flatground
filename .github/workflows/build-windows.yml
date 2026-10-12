@@ -36,6 +36,23 @@ jobs:
       - name: Validate project startup
         run: godot --headless --path . --quit-after 5
 
+      - name: Install matching Windows export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          GODOT_VERSION="$(godot --version | sed -E 's/^v?([0-9]+\.[0-9]+\.[0-9]+).*/\1/')"
+          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$TEMPLATE_DIR"
+          ARCHIVE="/tmp/godot-export-templates.tpz"
+          curl --fail --location --retry 3 \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz" \
+            --output "$ARCHIVE"
+          mkdir -p /tmp/godot-export-templates
+          unzip -q -o "$ARCHIVE" -d /tmp/godot-export-templates
+          cp -R /tmp/godot-export-templates/templates/. "$TEMPLATE_DIR/"
+          test -f "$TEMPLATE_DIR/windows_release_x86_64.exe"
+          test -f "$TEMPLATE_DIR/windows_debug_x86_64.exe"
+
       - name: Export Windows executable
         run: |
           mkdir -p build/windows
