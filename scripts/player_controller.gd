@@ -229,7 +229,7 @@ func _can_stand_up() -> bool:
 	probe.margin = collision_margin
 	var query := PhysicsShapeQueryParameters3D.new()
 	query.shape = probe
-	query.transform = global_transform * Transform3D(Basis(), Vector3(0.0, standing_height * 0.5, 0.0))
+	query.transform = global_transform * Transform3D(Basis(), Vector3(0.0, standing_height * 0.5 + collision_margin * 2.0, 0.0))
 	query.collision_mask = collision_mask
 	query.exclude = [get_rid()]
 	query.margin = collision_margin
