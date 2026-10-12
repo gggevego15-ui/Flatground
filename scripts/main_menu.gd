@@ -34,6 +34,10 @@ func _build_menu() -> void:
 	diagonal.rotation = deg_to_rad(13.0)
 	diagonal.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	art.add_child(diagonal)
+	# Slow cinematic drift in the diagonal light field.
+	var light_tween := create_tween().set_loops()
+	light_tween.tween_property(diagonal, "rotation", deg_to_rad(9.0), 5.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	light_tween.tween_property(diagonal, "rotation", deg_to_rad(13.0), 5.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	for i in range(15):
 		var building := ColorRect.new()
 		building.color = Color("#202a30") if i % 2 == 0 else Color("#1b242a")
@@ -47,6 +51,10 @@ func _build_menu() -> void:
 	horizon.size = Vector2(1120, 2)
 	horizon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	art.add_child(horizon)
+	horizon.modulate.a = 0.45
+	var horizon_tween := create_tween().set_loops()
+	horizon_tween.tween_property(horizon, "modulate:a", 0.95, 2.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	horizon_tween.tween_property(horizon, "modulate:a", 0.45, 2.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 	var top := HBoxContainer.new()
 	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
@@ -84,7 +92,13 @@ func _build_menu() -> void:
 	title.text = "OWN THE\nMOMENTUM."
 	title.add_theme_font_size_override("font_size", 42)
 	title.add_theme_color_override("font_color", Color("#f3f3ed"))
+	title.modulate.a = 0.0
 	left.add_child(title)
+	title.position.x = -24.0
+	var title_tween := create_tween()
+	title_tween.tween_interval(0.12)
+	title_tween.tween_property(title, "position:x", 0.0, 0.65).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	title_tween.parallel().tween_property(title, "modulate:a", 1.0, 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	var subtitle := Label.new()
 	subtitle.text = "Build speed. Read the route.\nMaster every landing."
 	subtitle.add_theme_font_size_override("font_size", 17)
@@ -198,7 +212,22 @@ func _add_button(parent: VBoxContainer, caption: String, action: Callable, prima
 	button.add_theme_color_override("font_color", Color("#11171a") if primary else Color("#e5e9e5"))
 	button.add_theme_color_override("font_hover_color", Color("#11171a") if primary else Color("#ffffff"))
 	button.pressed.connect(action)
+	var button_index := parent.get_child_count()
+	button.modulate.a = 0.0
+	button.position.x = -22.0
+	button.pivot_offset = Vector2(155.0, 27.0)
 	parent.add_child(button)
+	var entrance := create_tween()
+	entrance.tween_interval(0.18 + float(button_index) * 0.075)
+	entrance.tween_property(button, "position:x", 0.0, 0.42).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	entrance.parallel().tween_property(button, "modulate:a", 1.0, 0.38).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	button.mouse_entered.connect(_on_menu_button_hover.bind(button, true))
+	button.mouse_exited.connect(_on_menu_button_hover.bind(button, false))
+
+func _on_menu_button_hover(button: Button, hovered: bool) -> void:
+	var tween := create_tween()
+	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(button, "scale", Vector2(1.025, 1.025) if hovered else Vector2.ONE, 0.14)
 
 func _start_game() -> void:
 	get_tree().change_scene_to_file(GAME_SCENE)
