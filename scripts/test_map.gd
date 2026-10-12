@@ -166,7 +166,7 @@ func _build_city() -> void:
 				dot_mesh.bottom_radius = 0.045
 				dot_mesh.height = 0.025
 				tactile_dot.mesh = dot_mesh
-				tactile_dot.position = Vector3(side * 9.65 + float(dot_x) * 0.25, 0.24, 4.55 + float(dot_z) * 0.3)
+				tactile_dot.position = Vector3(side * (9.65 + float(dot_x) * 0.25), 0.24, 4.55 + float(dot_z) * 0.3)
 				tactile_dot.material_override = curb
 				add_child(tactile_dot)
 
