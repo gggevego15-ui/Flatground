@@ -12,11 +12,30 @@ func _ready() -> void:
 	_build_hud()
 
 
-func _material(color: Color, roughness := 0.88, metallic := 0.0) -> StandardMaterial3D:
+var _detail_textures: Array[NoiseTexture2D] = []
+
+
+func _material(color: Color, roughness := 0.88, metallic := 0.0, texture_scale := 1.0) -> StandardMaterial3D:
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = color
 	mat.roughness = roughness
 	mat.metallic = metallic
+	mat.uv1_scale = Vector3(texture_scale, texture_scale, texture_scale)
+	# Runtime-generated 4K seamless noise maps add fine surface breakup without neon or external assets.
+	var noise := FastNoiseLite.new()
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	noise.frequency = 0.035
+	noise.fractal_octaves = 4
+	noise.fractal_gain = 0.48
+	var texture := NoiseTexture2D.new()
+	texture.width = 4096
+	texture.height = 4096
+	texture.seamless = true
+	texture.generate_mipmaps = true
+	texture.normalize = true
+	texture.noise = noise
+	_detail_textures.append(texture)
+	mat.albedo_texture = texture
 	return mat
 
 
@@ -73,18 +92,18 @@ func _build_environment() -> void:
 
 
 func _build_city() -> void:
-	var asphalt := _material(Color(0.105, 0.115, 0.12), 0.98)
-	var concrete := _material(Color(0.48, 0.47, 0.43))
-	var curb := _material(Color(0.58, 0.57, 0.52))
+	var asphalt := _material(Color(0.32, 0.33, 0.32), 0.98, 0.0, 5.0)
+	var concrete := _material(Color(0.72, 0.70, 0.64), 0.94, 0.0, 2.4)
+	var curb := _material(Color(0.82, 0.80, 0.72), 0.92, 0.0, 1.8)
 	var white := _material(Color(0.82, 0.81, 0.75), 0.78)
 	var yellow := _material(Color(0.72, 0.56, 0.25), 0.75)
-	var brick_a := _material(Color(0.39, 0.25, 0.20))
-	var brick_b := _material(Color(0.53, 0.50, 0.44))
-	var plaster := _material(Color(0.66, 0.62, 0.53))
+	var brick_a := _material(Color(0.68, 0.46, 0.36), 0.95, 0.0, 2.8)
+	var brick_b := _material(Color(0.76, 0.71, 0.61), 0.94, 0.0, 2.2)
+	var plaster := _material(Color(0.84, 0.79, 0.67), 0.97, 0.0, 2.5)
 	var glass := _material(Color(0.18, 0.27, 0.31), 0.24, 0.18)
 	var dark_metal := _material(Color(0.105, 0.12, 0.12), 0.42, 0.45)
 	var wood := _material(Color(0.29, 0.22, 0.15))
-	var foliage := _material(Color(0.19, 0.27, 0.18), 0.96)
+	var foliage := _material(Color(0.43, 0.52, 0.35), 0.96, 0.0, 1.2)
 
 	# Broad street and sidewalks form the central traversal corridor.
 	_box(self, "RoadSurface", Vector3(0, -0.18, 0), Vector3(24, 0.35, 110), asphalt)
