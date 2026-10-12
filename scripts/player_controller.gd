@@ -22,6 +22,8 @@ extends CharacterBody3D
 @export var slide_steering := 1.4
 @export var slide_exit_speed := 2.0
 @export var collision_margin := 0.04
+@export var ladder_climb_speed := 3.0
+@export var step_snap_length := 0.38
 @export_group("Camera")
 @export var mouse_sensitivity := 0.0018
 @export var base_fov := 90.0
@@ -66,6 +68,8 @@ func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	camera.fov = base_fov
 	was_on_floor = is_on_floor()
+	floor_snap_length = step_snap_length
+	_build_character_model()
 
 func _add_action(action_name: String, keys: Array) -> void:
 	if not InputMap.has_action(action_name):
@@ -96,6 +100,16 @@ func _physics_process(delta: float) -> void:
 	var wish_dir := (global_transform.basis * Vector3(input_2d.x, 0.0, input_2d.y)).normalized()
 	var horizontal := Vector3(velocity.x, 0.0, velocity.z)
 	var horizontal_speed := horizontal.length()
+	var on_ladder := _near_ladder()
+	var ladder_axis := -input_2d.y
+	if on_ladder and absf(ladder_axis) > 0.1:
+		velocity.y = ladder_axis * ladder_climb_speed
+		velocity.x = move_toward(velocity.x, 0.0, ground_friction * delta)
+		velocity.z = move_toward(velocity.z, 0.0, ground_friction * delta)
+		move_and_slide()
+		_update_camera(delta, true, false)
+		was_on_floor = is_on_floor()
+		return
 
 	if grounded:
 		if not was_on_floor and velocity.y < -2.0:
@@ -247,3 +261,56 @@ func _update_capsule(crouching: bool, delta: float) -> void:
 	var desired := crouching_height if crouching else standing_height
 	shape.height = lerpf(shape.height, desired, 1.0 - exp(-crouch_transition_speed * delta))
 	capsule.position.y = shape.height * 0.5
+
+
+func _near_ladder() -> bool:
+	var probe := SphereShape3D.new()
+	probe.radius = 0.85
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = probe
+	query.transform = Transform3D(Basis(), global_position + Vector3.UP * 1.0)
+	query.collision_mask = collision_mask
+	query.collide_with_areas = true
+	query.collide_with_bodies = false
+	query.exclude = [get_rid()]
+	var hits := get_world_3d().direct_space_state.intersect_shape(query, 8)
+	probe.free()
+	for hit in hits:
+		var collider: Object = hit.get("collider")
+		if collider is Node and collider.is_in_group("climbable_ladder"):
+			return true
+	return false
+
+
+func _build_character_model() -> void:
+	# Head is omitted so the first-person camera never clips inside the face.
+	var uniform := StandardMaterial3D.new()
+	uniform.albedo_color = Color(0.19, 0.22, 0.23)
+	uniform.roughness = 0.94
+	var trousers := StandardMaterial3D.new()
+	trousers.albedo_color = Color(0.12, 0.14, 0.15)
+	trousers.roughness = 0.98
+	var boots := StandardMaterial3D.new()
+	boots.albedo_color = Color(0.07, 0.075, 0.075)
+	boots.roughness = 0.92
+	var skin := StandardMaterial3D.new()
+	skin.albedo_color = Color(0.62, 0.43, 0.31)
+	skin.roughness = 0.88
+	_add_body_box("Torso", Vector3(0, 1.12, 0.04), Vector3(0.48, 0.58, 0.27), uniform)
+	_add_body_box("Pelvis", Vector3(0, 0.78, 0.04), Vector3(0.38, 0.2, 0.25), trousers)
+	for side in [-1.0, 1.0]:
+		_add_body_box("UpperLeg", Vector3(side * 0.115, 0.48, 0.04), Vector3(0.17, 0.48, 0.2), trousers)
+		_add_body_box("Boot", Vector3(side * 0.115, 0.12, -0.025), Vector3(0.18, 0.2, 0.29), boots)
+		_add_body_box("Sleeve", Vector3(side * 0.31, 1.12, 0.04), Vector3(0.16, 0.48, 0.19), uniform)
+		_add_body_box("Hand", Vector3(side * 0.32, 0.86, -0.005), Vector3(0.12, 0.14, 0.13), skin)
+
+
+func _add_body_box(label: String, pos: Vector3, size: Vector3, material: Material) -> void:
+	var mesh := MeshInstance3D.new()
+	mesh.name = label
+	var box := BoxMesh.new()
+	box.size = size
+	mesh.mesh = box
+	mesh.material_override = material
+	mesh.position = pos
+	add_child(mesh)
