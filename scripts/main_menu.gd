@@ -65,7 +65,7 @@ func _build_menu() -> void:
 	top.add_child(version)
 
 	var left := VBoxContainer.new()
-	left.position = Vector2(64, 190)
+	left.position = Vector2(64, 128)
 	left.size = Vector2(390, 600)
 	left.add_theme_constant_override("separation", 12)
 	add_child(left)
@@ -76,7 +76,7 @@ func _build_menu() -> void:
 	left.add_child(eyebrow)
 	var title := Label.new()
 	title.text = "OWN THE\nMOMENTUM."
-	title.add_theme_font_size_override("font_size", 48)
+	title.add_theme_font_size_override("font_size", 42)
 	title.add_theme_color_override("font_color", Color("#f3f3ed"))
 	left.add_child(title)
 	var subtitle := Label.new()
@@ -93,7 +93,7 @@ func _build_menu() -> void:
 	_add_button(left, "QUIT TO DESKTOP", _quit_game, false)
 
 	_settings_panel = PanelContainer.new()
-	_settings_panel.position = Vector2(480, 245)
+	_settings_panel.position = Vector2(480, 190)
 	_settings_panel.size = Vector2(380, 250)
 	_settings_panel.visible = false
 	var panel_style := StyleBoxFlat.new()
@@ -123,7 +123,7 @@ func _build_menu() -> void:
 
 	_status_label = Label.new()
 	_status_label.text = "READY  //  TRAINING DISTRICT AVAILABLE"
-	_status_label.position = Vector2(64, 790)
+	_status_label.position = Vector2(64, 650)
 	_status_label.add_theme_font_size_override("font_size", 12)
 	_status_label.add_theme_color_override("font_color", Color("#d7a45b"))
 	add_child(_status_label)
