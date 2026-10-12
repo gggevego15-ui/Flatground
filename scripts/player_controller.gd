@@ -13,6 +13,10 @@ extends CharacterBody3D
 @export var gravity := 20.0
 @export var slide_friction := 2.2
 @export var slide_boost := 1.12
+@export var air_wishspeed_cap := 8.0
+@export var air_acceleration_gain := 18.0
+@export var bunnyhop_speed_retention := 0.98
+@export var ground_jump_friction_scale := 0.08
 @export_group("Camera")
 @export var mouse_sensitivity := 0.0018
 @export var base_fov := 90.0
@@ -77,54 +81,79 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _physics_process(delta: float) -> void:
 	var grounded := is_on_floor()
+	var jump_held := Input.is_action_pressed("jump")
 	var crouching := Input.is_action_pressed("crouch")
 	var sprinting := Input.is_action_pressed("sprint") and not crouching
 	var input_2d := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-	var wish_dir := (global_transform.basis * Vector3(input_2d.x, 0, input_2d.y)).normalized()
-	var horizontal := Vector3(velocity.x, 0, velocity.z)
+	var wish_dir := (global_transform.basis * Vector3(input_2d.x, 0.0, input_2d.y)).normalized()
+	var horizontal := Vector3(velocity.x, 0.0, velocity.z)
+	var horizontal_speed := horizontal.length()
 
 	if grounded:
 		if not was_on_floor and velocity.y < -2.0:
 			var impact := clampf(absf(velocity.y) / jump_velocity, 0.35, 2.2)
 			landing_offset = landing_kick * impact
 			landing_velocity = landing_recovery * impact * 0.08
-		if crouching and horizontal.length() > walk_speed * 0.7:
+
+		if crouching and horizontal_speed > walk_speed * 0.7 and not jump_held:
 			if not slide_active:
 				slide_active = true
-				slide_speed = horizontal.length() * slide_boost
+				slide_speed = horizontal_speed * slide_boost
 			slide_speed = maxf(0.0, slide_speed - slide_friction * delta)
-			velocity.x = horizontal.normalized().x * slide_speed
-			velocity.z = horizontal.normalized().z * slide_speed
-			if wish_dir.length() > 0.01:
-				var steered := Vector3(velocity.x, 0, velocity.z).lerp(wish_dir * slide_speed, delta * 1.4)
-				velocity.x = steered.x
-				velocity.z = steered.z
+			horizontal = horizontal.normalized() * slide_speed
+			if wish_dir.length_squared() > 0.001:
+				horizontal = horizontal.lerp(wish_dir * slide_speed, minf(delta * 1.4, 1.0))
 		else:
 			slide_active = false
 			var target_speed := crouch_speed if crouching else (sprint_speed if sprinting else walk_speed)
-			var target := wish_dir * target_speed
-			if wish_dir.length() > 0.01:
-				horizontal = horizontal.move_toward(target, ground_acceleration * delta)
+			if jump_held:
+				# Preserve most horizontal momentum on a perfectly timed hop.
+				horizontal = horizontal.move_toward(Vector3.ZERO, ground_friction * ground_jump_friction_scale * delta)
+			elif wish_dir.length_squared() > 0.001:
+				horizontal = _ground_accelerate(horizontal, wish_dir, target_speed, ground_acceleration, delta)
 			else:
 				horizontal = horizontal.move_toward(Vector3.ZERO, ground_friction * delta)
-			velocity.x = horizontal.x
-			velocity.z = horizontal.z
-		# Hold Space to jump immediately on every grounded frame (auto-bhop).
-		if Input.is_action_pressed("jump"):
+
+		velocity.x = horizontal.x
+		velocity.z = horizontal.z
+		if jump_held:
 			velocity.y = jump_velocity
 			slide_active = false
+			# Avoid a sudden speed drop at take-off while keeping tiny losses stable.
+			if horizontal.length() > sprint_speed:
+				horizontal *= bunnyhop_speed_retention
+				velocity.x = horizontal.x
+				velocity.z = horizontal.z
 	else:
 		slide_active = false
 		velocity.y -= gravity * delta
-		if wish_dir.length() > 0.01:
-			var air_target := wish_dir * sprint_speed
-			horizontal = horizontal.move_toward(air_target, air_acceleration * air_control * delta)
+		if wish_dir.length_squared() > 0.001:
+			# Quake-style air acceleration: accelerate along the desired direction,
+			# rather than pulling the whole velocity vector toward a fixed target.
+			horizontal = _air_accelerate(horizontal, wish_dir, air_wishspeed_cap, air_acceleration_gain, delta)
 			velocity.x = horizontal.x
 			velocity.z = horizontal.z
 
 	move_and_slide()
 	_update_camera(delta, crouching, sprinting)
 	was_on_floor = grounded
+
+
+func _ground_accelerate(current: Vector3, wish_dir: Vector3, wish_speed: float, acceleration: float, delta: float) -> Vector3:
+	var add_speed := wish_speed - current.dot(wish_dir)
+	if add_speed <= 0.0:
+		return current
+	var accel_speed := minf(acceleration * wish_speed * delta, add_speed)
+	return current + wish_dir * accel_speed
+
+
+func _air_accelerate(current: Vector3, wish_dir: Vector3, wish_speed: float, acceleration: float, delta: float) -> Vector3:
+	var add_speed := wish_speed - current.dot(wish_dir)
+	if add_speed <= 0.0:
+		return current
+	var accel_speed := minf(acceleration * wish_speed * delta, add_speed)
+	return current + wish_dir * accel_speed
+
 
 func _update_camera(delta: float, crouching: bool, sprinting: bool) -> void:
 	camera_clock += delta
