@@ -94,10 +94,11 @@ func _build_menu() -> void:
 	title.add_theme_color_override("font_color", Color("#f3f3ed"))
 	title.modulate.a = 0.0
 	left.add_child(title)
-	title.position.x = -24.0
+	title.scale = Vector2(0.94, 0.94)
+	title.pivot_offset = Vector2(190.0, 45.0)
 	var title_tween := create_tween()
 	title_tween.tween_interval(0.12)
-	title_tween.tween_property(title, "position:x", 0.0, 0.65).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	title_tween.tween_property(title, "scale", Vector2.ONE, 0.65).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	title_tween.parallel().tween_property(title, "modulate:a", 1.0, 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	var subtitle := Label.new()
 	subtitle.text = "Build speed. Read the route.\nMaster every landing."
@@ -214,12 +215,12 @@ func _add_button(parent: VBoxContainer, caption: String, action: Callable, prima
 	button.pressed.connect(action)
 	var button_index := parent.get_child_count()
 	button.modulate.a = 0.0
-	button.position.x = -22.0
+	button.scale = Vector2(0.94, 0.94)
 	button.pivot_offset = Vector2(155.0, 27.0)
 	parent.add_child(button)
 	var entrance := create_tween()
 	entrance.tween_interval(0.18 + float(button_index) * 0.075)
-	entrance.tween_property(button, "position:x", 0.0, 0.42).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	entrance.tween_property(button, "scale", Vector2.ONE, 0.42).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	entrance.parallel().tween_property(button, "modulate:a", 1.0, 0.38).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	button.mouse_entered.connect(_on_menu_button_hover.bind(button, true))
 	button.mouse_exited.connect(_on_menu_button_hover.bind(button, false))
