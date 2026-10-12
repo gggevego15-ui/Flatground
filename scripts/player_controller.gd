@@ -9,6 +9,7 @@ extends CharacterBody3D
 @export var air_acceleration := 5.0
 @export var ground_friction := 12.0
 @export var air_control := 0.35
+@export var air_strafe_multiplier := 1.35
 @export var jump_velocity := 6.8
 @export var gravity := 20.0
 @export var slide_friction := 2.2
@@ -174,9 +175,14 @@ func _physics_process(delta: float) -> void:
 		else:
 			velocity.y -= gravity * delta
 		if wish_dir.length_squared() > 0.001:
-			# Quake-style air acceleration: accelerate along the desired direction,
-			# rather than pulling the whole velocity vector toward a fixed target.
-			horizontal = _air_accelerate(horizontal, wish_dir, air_wishspeed_cap, air_acceleration_gain, delta)
+			# Quake-style air acceleration preserves momentum and rewards clean strafe angles.
+			var air_gain := air_acceleration_gain
+			if absf(input_2d.x) > 0.1:
+				air_gain *= air_strafe_multiplier
+			horizontal = _air_accelerate(horizontal, wish_dir, air_wishspeed_cap, air_gain, delta)
+			# Gentle forward air-control lets players correct their arc without erasing speed.
+			if input_2d.y < -0.1 and horizontal.length_squared() > 0.01:
+				horizontal = _apply_air_control(horizontal, wish_dir, delta)
 			velocity.x = horizontal.x
 			velocity.z = horizontal.z
 
@@ -199,6 +205,20 @@ func _air_accelerate(current: Vector3, wish_dir: Vector3, wish_speed: float, acc
 		return current
 	var accel_speed := minf(acceleration * wish_speed * delta, add_speed)
 	return current + wish_dir * accel_speed
+
+
+func _apply_air_control(current: Vector3, wish_dir: Vector3, delta: float) -> Vector3:
+	var speed := current.length()
+	if speed < 0.1:
+		return current
+	var forward_dot := current.normalized().dot(wish_dir)
+	if forward_dot <= 0.0:
+		return current
+	var steer := wish_dir * (air_control * forward_dot * delta * 10.0)
+	var controlled := Vector3(current.x + steer.x, 0.0, current.z + steer.z)
+	if controlled.length_squared() < 0.001:
+		return current
+	return controlled.normalized() * speed
 
 
 func _update_camera(delta: float, crouching: bool, sprinting: bool) -> void:
