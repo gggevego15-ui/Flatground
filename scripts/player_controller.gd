@@ -71,6 +71,8 @@ func _ready() -> void:
 	_add_action("sprint", [KEY_SHIFT])
 	_add_action("crouch", [KEY_CTRL])
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	if has_node("/root/FlatSettings"):
+		mouse_sensitivity = get_node("/root/FlatSettings").mouse_sensitivity
 	camera.fov = base_fov
 	was_on_floor = is_on_floor()
 	floor_snap_length = step_snap_length
