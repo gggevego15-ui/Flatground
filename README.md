@@ -1,6 +1,6 @@
 # FlatGROUND
 
-Immersive first-person movement prototype built with Godot 4.6.1.
+Immersive first-person movement prototype built with Godot 4.7.2.
 
 ## Controls
 
@@ -13,7 +13,7 @@ Immersive first-person movement prototype built with Godot 4.6.1.
 
 ## Run locally
 
-Open this folder in Godot 4.6.1 or a newer stable Godot 4.x release and press **F5** to run the project.
+Open this folder in Godot 4.7.2 or a newer stable Godot 4.x release and press **F5** to run the project.
 
 ## Automated Windows build
 
