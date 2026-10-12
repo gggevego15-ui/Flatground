@@ -89,6 +89,8 @@ func _add_action(action_name: String, keys: Array) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		if has_node("/root/FlatSettings"):
+			mouse_sensitivity = get_node("/root/FlatSettings").mouse_sensitivity
 		rotate_y(-event.relative.x * mouse_sensitivity)
 		target_pitch = clampf(target_pitch - event.relative.y * mouse_sensitivity, deg_to_rad(-89), deg_to_rad(89))
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
