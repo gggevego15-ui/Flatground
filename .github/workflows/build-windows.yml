@@ -30,11 +30,25 @@ jobs:
           test -f scripts/player_controller.gd
           test -f scripts/test_map.gd
 
-      - name: Import project resources
-        run: godot --headless --editor --path . --quit
+      - name: Import project resources and reject script errors
+        shell: bash
+        run: |
+          set -o pipefail
+          godot --headless --editor --path . --quit 2>&1 | tee /tmp/godot-import.log
+          if grep -E "SCRIPT ERROR:|Failed to load script|Parse Error:" /tmp/godot-import.log; then
+            echo "Godot reported script errors during import." >&2
+            exit 1
+          fi
 
       - name: Validate project startup
-        run: godot --headless --path . --quit-after 5
+        shell: bash
+        run: |
+          set -o pipefail
+          godot --headless --path . --quit-after 5 2>&1 | tee /tmp/godot-startup.log
+          if grep -E "SCRIPT ERROR:|Failed to load script|Parse Error:" /tmp/godot-startup.log; then
+            echo "Godot reported script errors during startup." >&2
+            exit 1
+          fi
 
       - name: Install CI utilities and system fonts
         run: |
@@ -66,9 +80,16 @@ jobs:
           test -f "$TEMPLATE_DIR/windows_debug_x86_64.exe"
 
       - name: Export Windows executable
+        shell: bash
         run: |
+          set -o pipefail
           mkdir -p build/windows
-          godot --headless --path . --export-release "Windows Desktop" build/windows/FlatGROUND.exe
+          godot --headless --path . --export-release "Windows Desktop" build/windows/FlatGROUND.exe 2>&1 | tee /tmp/godot-export.log
+          if grep -E "SCRIPT ERROR:|Failed to load script|Parse Error:" /tmp/godot-export.log; then
+            echo "Godot reported script errors during Windows export." >&2
+            exit 1
+          fi
+          test -s build/windows/FlatGROUND.exe
 
       - name: Upload Windows build
         uses: actions/upload-artifact@v4
