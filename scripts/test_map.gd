@@ -12,7 +12,7 @@ func _ready() -> void:
 	_build_hud()
 
 
-var _detail_textures: Array[NoiseTexture2D] = []
+var _detail_texture: NoiseTexture2D
 
 
 func _material(color: Color, roughness := 0.88, metallic := 0.0, texture_scale := 1.0) -> StandardMaterial3D:
@@ -21,21 +21,21 @@ func _material(color: Color, roughness := 0.88, metallic := 0.0, texture_scale :
 	mat.roughness = roughness
 	mat.metallic = metallic
 	mat.uv1_scale = Vector3(texture_scale, texture_scale, texture_scale)
-	# Runtime-generated 4K seamless noise maps add fine surface breakup without neon or external assets.
-	var noise := FastNoiseLite.new()
-	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-	noise.frequency = 0.035
-	noise.fractal_octaves = 4
-	noise.fractal_gain = 0.48
-	var texture := NoiseTexture2D.new()
-	texture.width = 4096
-	texture.height = 4096
-	texture.seamless = true
-	texture.generate_mipmaps = true
-	texture.normalize = true
-	texture.noise = noise
-	_detail_textures.append(texture)
-	mat.albedo_texture = texture
+	# One shared 4K seamless detail map keeps memory use bounded across the whole city.
+	if _detail_texture == null:
+		var noise := FastNoiseLite.new()
+		noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+		noise.frequency = 0.035
+		noise.fractal_octaves = 4
+		noise.fractal_gain = 0.48
+		_detail_texture = NoiseTexture2D.new()
+		_detail_texture.width = 4096
+		_detail_texture.height = 4096
+		_detail_texture.seamless = true
+		_detail_texture.generate_mipmaps = true
+		_detail_texture.normalize = true
+		_detail_texture.noise = noise
+	mat.albedo_texture = _detail_texture
 	return mat
 
 
