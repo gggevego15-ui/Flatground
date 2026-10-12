@@ -17,6 +17,11 @@ extends CharacterBody3D
 @export var air_acceleration_gain := 18.0
 @export var bunnyhop_speed_retention := 0.98
 @export var ground_jump_friction_scale := 0.08
+@export var crouch_transition_speed := 14.0
+@export var slide_min_speed := 4.2
+@export var slide_steering := 1.4
+@export var slide_exit_speed := 2.0
+@export var collision_margin := 0.04
 @export_group("Camera")
 @export var mouse_sensitivity := 0.0018
 @export var base_fov := 90.0
@@ -48,6 +53,7 @@ var camera_clock := 0.0
 var was_on_floor := false
 var slide_active := false
 var slide_speed := 0.0
+var crouch_blocked := false
 
 func _ready() -> void:
 	_add_action("move_forward", [KEY_W, KEY_UP])
@@ -82,7 +88,9 @@ func _unhandled_input(event: InputEvent) -> void:
 func _physics_process(delta: float) -> void:
 	var grounded := is_on_floor()
 	var jump_held := Input.is_action_pressed("jump")
-	var crouching := Input.is_action_pressed("crouch")
+	var crouch_requested := Input.is_action_pressed("crouch")
+	var crouching := crouch_requested or not _can_stand_up()
+	crouch_blocked = not crouch_requested and not _can_stand_up()
 	var sprinting := Input.is_action_pressed("sprint") and not crouching
 	var input_2d := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var wish_dir := (global_transform.basis * Vector3(input_2d.x, 0.0, input_2d.y)).normalized()
@@ -95,14 +103,16 @@ func _physics_process(delta: float) -> void:
 			landing_offset = landing_kick * impact
 			landing_velocity = landing_recovery * impact * 0.08
 
-		if crouching and horizontal_speed > walk_speed * 0.7 and not jump_held:
+		if crouching and horizontal_speed > slide_min_speed and not jump_held:
 			if not slide_active:
 				slide_active = true
 				slide_speed = horizontal_speed * slide_boost
 			slide_speed = maxf(0.0, slide_speed - slide_friction * delta)
 			horizontal = horizontal.normalized() * slide_speed
 			if wish_dir.length_squared() > 0.001:
-				horizontal = horizontal.lerp(wish_dir * slide_speed, minf(delta * 1.4, 1.0))
+				horizontal = horizontal.lerp(wish_dir * slide_speed, minf(delta * slide_steering, 1.0))
+			if slide_speed < slide_exit_speed and not crouch_requested:
+				slide_active = false
 		else:
 			slide_active = false
 			var target_speed := crouch_speed if crouching else (sprint_speed if sprinting else walk_speed)
@@ -208,8 +218,32 @@ func _update_camera(delta: float, crouching: bool, sprinting: bool) -> void:
 	camera.position = camera.position.lerp(target_camera_position, 1.0 - exp(-camera_smoothing * delta))
 	_update_capsule(crouching, delta)
 
+
+func _can_stand_up() -> bool:
+	var shape := capsule.shape as CapsuleShape3D
+	if shape == null or shape.height >= standing_height - 0.01:
+		return true
+	var probe := CapsuleShape3D.new()
+	probe.radius = shape.radius
+	probe.height = standing_height
+	probe.margin = collision_margin
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = probe
+	query.transform = global_transform * Transform3D(Basis(), Vector3(0.0, standing_height * 0.5, 0.0))
+	query.collision_mask = collision_mask
+	query.exclude = [get_rid()]
+	query.margin = collision_margin
+	var space := get_world_3d().direct_space_state
+	var hits := space.intersect_shape(query, 8)
+	probe.free()
+	return hits.is_empty()
+
+
 func _update_capsule(crouching: bool, delta: float) -> void:
 	var shape := capsule.shape as CapsuleShape3D
+	if shape == null:
+		return
+	# Keep the capsule bottom near the player's feet as its height changes.
 	var desired := crouching_height if crouching else standing_height
-	shape.height = lerpf(shape.height, desired, 1.0 - exp(-14.0 * delta))
+	shape.height = lerpf(shape.height, desired, 1.0 - exp(-crouch_transition_speed * delta))
 	capsule.position.y = shape.height * 0.5
