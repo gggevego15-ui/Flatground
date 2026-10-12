@@ -19,7 +19,14 @@ extends CharacterBody3D
 @export var sprint_fov := 98.0
 @export var camera_smoothing := 12.0
 @export var headbob_amount := 0.035
-@export var landing_kick := 0.09
+@export var landing_kick := 0.16
+@export var landing_recovery := 10.0
+@export var look_smoothing := 24.0
+@export var strafe_roll_degrees := 2.0
+@export var sprint_sway_amount := 0.012
+@export var idle_breath_amount := 0.004
+@export var speed_fov_amount := 1.2
+@export var camera_effects_enabled := true
 
 @onready var head: Node3D = $Head
 @onready var camera: Camera3D = $Head/Camera3D
@@ -29,8 +36,11 @@ var crouching_height := 1.15
 var camera_stand_y := 1.62
 var camera_crouch_y := 1.02
 var pitch := 0.0
+var target_pitch := 0.0
 var bob_time := 0.0
 var landing_offset := 0.0
+var landing_velocity := 0.0
+var camera_clock := 0.0
 var was_on_floor := false
 var slide_active := false
 var slide_speed := 0.0
@@ -59,8 +69,7 @@ func _add_action(action_name: String, keys: Array) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		rotate_y(-event.relative.x * mouse_sensitivity)
-		pitch = clampf(pitch - event.relative.y * mouse_sensitivity, deg_to_rad(-89), deg_to_rad(89))
-		head.rotation.x = pitch
+		target_pitch = clampf(target_pitch - event.relative.y * mouse_sensitivity, deg_to_rad(-89), deg_to_rad(89))
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	if event is InputEventMouseButton and event.pressed:
@@ -76,7 +85,9 @@ func _physics_process(delta: float) -> void:
 
 	if grounded:
 		if not was_on_floor and velocity.y < -2.0:
-			landing_offset = landing_kick
+			var impact := clampf(absf(velocity.y) / jump_velocity, 0.35, 2.2)
+			landing_offset = landing_kick * impact
+			landing_velocity = landing_recovery * impact * 0.08
 		if crouching and horizontal.length() > walk_speed * 0.7:
 			if not slide_active:
 				slide_active = true
@@ -116,22 +127,56 @@ func _physics_process(delta: float) -> void:
 	was_on_floor = grounded
 
 func _update_camera(delta: float, crouching: bool, sprinting: bool) -> void:
+	camera_clock += delta
 	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
-	if is_on_floor() and horizontal_speed > 0.5:
-		bob_time += delta * (12.0 if sprinting else 8.0)
+	var grounded := is_on_floor()
+	# Smooth pitch independently from yaw for a controlled, immersive view.
+	pitch = lerpf(pitch, target_pitch, 1.0 - exp(-look_smoothing * delta))
+	head.rotation.x = pitch
+
+	var moving := grounded and horizontal_speed > 0.5
 	var bob := Vector3.ZERO
-	if is_on_floor() and horizontal_speed > 0.5:
-		bob = Vector3(cos(bob_time * 0.5) * headbob_amount, sin(bob_time) * headbob_amount, 0.0)
-	landing_offset = move_toward(landing_offset, 0.0, delta * 0.65)
+	if moving:
+		var gait_rate := 8.5 if sprinting else 6.5
+		bob_time += delta * gait_rate * clampf(horizontal_speed / walk_speed, 0.65, 1.65)
+		if camera_effects_enabled:
+			var intensity := headbob_amount * (1.25 if sprinting else 1.0)
+			bob = Vector3(cos(bob_time * 0.5) * intensity, absf(sin(bob_time)) * intensity, 0.0)
+	elif camera_effects_enabled:
+		# Subtle idle breathing avoids a completely mechanical viewpoint.
+		bob.y = sin(camera_clock * 1.15) * idle_breath_amount
+
+	# A short dip on landing, followed by a smooth recovery.
+	landing_velocity = move_toward(landing_velocity, 0.0, landing_recovery * delta)
+	landing_offset = move_toward(landing_offset, 0.0, landing_recovery * 0.65 * delta)
 	var target_y := camera_crouch_y if crouching else camera_stand_y
-	var target_fov := sprint_fov if sprinting and horizontal_speed > walk_speed else base_fov
-	if slide_active:
-		target_fov += 2.0
 	head.position.y = lerpf(head.position.y, target_y, 1.0 - exp(-camera_smoothing * delta))
-	camera.position = camera.position.lerp(bob + Vector3(0, -landing_offset, 0), 1.0 - exp(-camera_smoothing * delta))
-	camera.fov = lerpf(camera.fov, target_fov, 1.0 - exp(-5.0 * delta))
-	var roll_target := -Input.get_axis("move_left", "move_right") * 0.012
+
+	var target_fov := base_fov
+	if sprinting:
+		target_fov = sprint_fov
+	elif horizontal_speed > walk_speed:
+		target_fov += minf(speed_fov_amount * (horizontal_speed - walk_speed), 3.0)
+	if slide_active:
+		target_fov += 2.5
+	if camera_effects_enabled:
+		target_fov += minf(horizontal_speed * 0.12, 1.5)
+	camera.fov = lerpf(camera.fov, target_fov, 1.0 - exp(-4.5 * delta))
+
+	var strafe := Input.get_axis("move_left", "move_right")
+	var roll_target := 0.0
+	if camera_effects_enabled:
+		roll_target = deg_to_rad(-strafe_roll_degrees) * strafe
+		if slide_active:
+			roll_target += deg_to_rad(-1.0) * strafe
 	head.rotation.z = lerpf(head.rotation.z, roll_target, 1.0 - exp(-camera_smoothing * delta))
+
+	var sprint_sway := Vector3.ZERO
+	if camera_effects_enabled and sprinting and moving:
+		sprint_sway.x = sin(bob_time * 0.5) * sprint_sway_amount
+		sprint_sway.y = cos(bob_time) * sprint_sway_amount * 0.6
+	var target_camera_position := bob + sprint_sway + Vector3(0.0, -landing_offset, 0.0)
+	camera.position = camera.position.lerp(target_camera_position, 1.0 - exp(-camera_smoothing * delta))
 	_update_capsule(crouching, delta)
 
 func _update_capsule(crouching: bool, delta: float) -> void:
