@@ -1,0 +1,47 @@
+name: Godot Windows Build
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export-windows:
+    name: Validate and export Windows build
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.6.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify project files
+        run: |
+          test -f project.godot
+          test -f scenes/test_map.tscn
+          test -f scenes/player.tscn
+          test -f scripts/player_controller.gd
+          test -f scripts/test_map.gd
+
+      - name: Import project resources
+        run: godot --headless --editor --path . --quit
+
+      - name: Validate project startup
+        run: godot --headless --path . --quit-after 5
+
+      - name: Export Windows executable
+        run: |
+          mkdir -p build/windows
+          godot --headless --path . --export-release "Windows Desktop" build/windows/FlatGROUND.exe
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: FlatGROUND-Windows
+          path: build/windows/
+          if-no-files-found: error
+          retention-days: 14
