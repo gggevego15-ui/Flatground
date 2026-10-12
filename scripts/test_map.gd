@@ -117,6 +117,59 @@ func _build_city() -> void:
 	for i in range(9):
 		_box(self, "CrosswalkStripe", Vector3(-4.8 + i * 1.2, 0.015, 5), Vector3(0.72, 0.025, 3.0), white, Vector3.ZERO, false)
 
+	# Small-scale street wear: repaired asphalt, cracks, manholes and drainage.
+	var asphalt_patch := _material(Color(0.25, 0.26, 0.25), 0.99, 0.0, 4.2)
+	var crack_mat := _material(Color(0.12, 0.13, 0.12), 1.0, 0.0, 1.0)
+	var iron := _material(Color(0.20, 0.22, 0.22), 0.72, 0.35, 1.0)
+	for patch_index in range(8):
+		var pz := -39.0 + float(patch_index) * 10.5
+		var px := -7.0 if patch_index % 2 == 0 else 6.0
+		_box(self, "AsphaltRepairPatch", Vector3(px, 0.004, pz), Vector3(2.4 + float(patch_index % 3) * 0.6, 0.018, 1.1), asphalt_patch, Vector3(0, deg_to_rad(float((patch_index % 3) - 1) * 7.0), 0), false)
+	for crack_index in range(18):
+		var cz := -47.0 + float(crack_index) * 5.1
+		var cx := -8.0 + float((crack_index * 7) % 15)
+		_box(self, "AsphaltHairlineCrack", Vector3(cx, 0.009, cz), Vector3(0.035, 0.012, 0.75 + float(crack_index % 4) * 0.22), crack_mat, Vector3(0, deg_to_rad(float((crack_index * 31) % 50 - 25)), 0), false)
+	for drain_index in range(7):
+		var dz := -42.0 + float(drain_index) * 14.0
+		for side in [-1.0, 1.0]:
+			_box(self, "StormDrainFrame", Vector3(side * 11.72, 0.215, dz), Vector3(0.34, 0.035, 1.25), iron, Vector3.ZERO, false)
+			for slot in range(7):
+				_box(self, "StormDrainSlot", Vector3(side * 11.72, 0.237, dz - 0.48 + float(slot) * 0.16), Vector3(0.25, 0.012, 0.045), crack_mat, Vector3.ZERO, false)
+	for manhole_index in range(4):
+		var mz := -32.0 + float(manhole_index) * 22.0
+		var cover := MeshInstance3D.new()
+		var disk := CylinderMesh.new()
+		disk.top_radius = 0.48
+		disk.bottom_radius = 0.48
+		disk.height = 0.035
+		cover.mesh = disk
+		cover.name = "ManholeCover"
+		cover.position = Vector3(3.8 if manhole_index % 2 == 0 else -3.8, 0.015, mz)
+		cover.material_override = iron
+		add_child(cover)
+		for groove in range(5):
+			_box(self, "ManholeGroove", cover.position + Vector3(-0.29 + float(groove) * 0.145, 0.023, 0), Vector3(0.025, 0.008, 0.58), crack_mat, Vector3.ZERO, false)
+
+	# Concrete sidewalk expansion joints and tactile warning strips at crossing corners.
+	var joint_mat := _material(Color(0.48, 0.47, 0.43), 0.98, 0.0, 1.0)
+	for joint_index in range(22):
+		var jz := -52.0 + float(joint_index) * 4.8
+		for side in [-1.0, 1.0]:
+			_box(self, "SidewalkExpansionJoint", Vector3(side * 14.2, 0.211, jz), Vector3(4.1, 0.009, 0.035), joint_mat, Vector3.ZERO, false)
+	for side in [-1.0, 1.0]:
+		_box(self, "TactilePaving", Vector3(side * 10.4, 0.214, 5.0), Vector3(2.1, 0.025, 1.4), yellow, Vector3.ZERO, false)
+		for dot_x in range(7):
+			for dot_z in range(4):
+				var tactile_dot := MeshInstance3D.new()
+				var dot_mesh := CylinderMesh.new()
+				dot_mesh.top_radius = 0.045
+				dot_mesh.bottom_radius = 0.045
+				dot_mesh.height = 0.025
+				tactile_dot.mesh = dot_mesh
+				tactile_dot.position = Vector3(side * 9.65 + float(dot_x) * 0.25, 0.24, 4.55 + float(dot_z) * 0.3)
+				tactile_dot.material_override = curb
+				add_child(tactile_dot)
+
 	# Three blocks of varied mid-rise buildings on each side, with repetitive but varied facades.
 	var facades: Array[Material] = [brick_a, brick_b, plaster, concrete]
 	for side in [-1.0, 1.0]:
@@ -140,6 +193,12 @@ func _build_city() -> void:
 					_box(self, "WindowFrame", Vector3(front_x, wy, wz), Vector3(0.16, 1.45, 1.75), dark_metal, Vector3.ZERO, false)
 					_box(self, "WindowGlass", Vector3(front_x - side * 0.09, wy, wz), Vector3(0.04, 1.22, 1.48), glass, Vector3.ZERO, false)
 					_box(self, "WindowSill", Vector3(front_x - side * 0.12, wy - 0.82, wz), Vector3(0.22, 0.12, 1.9), curb, Vector3.ZERO, false)
+					# Narrow mullions and lintels give windows a more convincing assembled frame.
+					_box(self, "WindowMullion", Vector3(front_x - side * 0.13, wy, wz), Vector3(0.055, 1.3, 0.07), dark_metal, Vector3.ZERO, false)
+					_box(self, "WindowLintel", Vector3(front_x - side * 0.13, wy + 0.76, wz), Vector3(0.22, 0.09, 1.88), concrete, Vector3.ZERO, false)
+					if (floor_index + col + block) % 3 == 0:
+						_box(self, "FacadeACUnit", Vector3(front_x - side * 0.42, wy - 0.15, wz + 1.25), Vector3(0.38, 0.42, 0.72), dark_metal, Vector3.ZERO, false)
+						_box(self, "ACVentPanel", Vector3(front_x - side * 0.63, wy - 0.15, wz + 1.25), Vector3(0.025, 0.28, 0.52), iron, Vector3.ZERO, false)
 			# Ground-floor storefronts and understated signage panels (no emissive/neon).
 			_box(self, "ShopfrontGlass", Vector3(side * 19.03, 1.45, z - 3.0), Vector3(0.12, 2.5, 3.2), glass, Vector3.ZERO, false)
 			_box(self, "ShopDoor", Vector3(side * 19.0, 1.25, z + 1.5), Vector3(0.18, 2.3, 1.0), dark_metal, Vector3.ZERO, false)
@@ -166,6 +225,9 @@ func _build_city() -> void:
 			crown.material_override = foliage
 			add_child(crown)
 			_box(self, "StreetBin", Vector3(side * 11.1, 0.65, z + 2.5), Vector3(0.7, 1.3, 0.7), dark_metal)
+			# Planter curbs, soil and low street-level clutter.
+			_box(self, "TreePlanterRim", Vector3(x, 0.25, z), Vector3(2.25, 0.18, 2.25), curb)
+			_box(self, "TreePlanterSoil", Vector3(x, 0.35, z), Vector3(1.95, 0.08, 1.95), wood, Vector3.ZERO, false)
 			_box(self, "LampPost", Vector3(side * 10.8, 3.0, z + 4.5), Vector3(0.12, 6.0, 0.12), dark_metal, Vector3.ZERO, false)
 			_box(self, "LampArm", Vector3(side * 10.45, 5.7, z + 4.5), Vector3(0.8, 0.1, 0.12), dark_metal, Vector3.ZERO, false)
 			var lamp := OmniLight3D.new()
