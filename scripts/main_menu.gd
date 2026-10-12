@@ -5,6 +5,12 @@ const GAME_SCENE := "res://scenes/test_map.tscn"
 var settings_open := false
 var _settings_panel: PanelContainer
 var _status_label: Label
+var _quality_option: OptionButton
+var _resolution_option: OptionButton
+var _fullscreen_check: CheckBox
+var _vsync_check: CheckBox
+var _sensitivity_slider: HSlider
+var _volume_slider: HSlider
 
 func _ready() -> void:
 	_build_menu()
@@ -103,23 +109,54 @@ func _build_menu() -> void:
 	panel_style.set_content_margin_all(20)
 	_settings_panel.add_theme_stylebox_override("panel", panel_style)
 	add_child(_settings_panel)
+	_settings_panel.size = Vector2(430, 550)
 	var settings_content := VBoxContainer.new()
-	settings_content.add_theme_constant_override("separation", 12)
+	settings_content.add_theme_constant_override("separation", 8)
 	_settings_panel.add_child(settings_content)
 	var settings_title := Label.new()
-	settings_title.text = "FIELD SETTINGS"
+	settings_title.text = "GRAPHICS  /  INPUT  /  AUDIO"
 	settings_title.add_theme_font_size_override("font_size", 20)
 	settings_content.add_child(settings_title)
-	var controls := Label.new()
-	controls.text = "WASD  Move / strafe\nMOUSE  Look\nSHIFT  Sprint\nCTRL  Slide\nSPACE  Bunny-hop\nESC  Release cursor"
-	controls.add_theme_font_size_override("font_size", 15)
-	controls.add_theme_color_override("font_color", Color("#b9c2c1"))
-	settings_content.add_child(controls)
+	_add_setting_label(settings_content, "GRAPHICS QUALITY")
+	_quality_option = OptionButton.new()
+	for quality in ["Low", "Medium", "High", "Ultra 4K"]:
+		_quality_option.add_item(quality)
+	_quality_option.item_selected.connect(_on_quality_selected)
+	settings_content.add_child(_quality_option)
+	_add_setting_label(settings_content, "DISPLAY RESOLUTION")
+	_resolution_option = OptionButton.new()
+	for resolution_name in ["1920x1080", "2560x1440", "3840x2160"]:
+		_resolution_option.add_item(resolution_name)
+	_resolution_option.item_selected.connect(_on_resolution_selected)
+	settings_content.add_child(_resolution_option)
+	_fullscreen_check = CheckBox.new()
+	_fullscreen_check.text = "Fullscreen"
+	_fullscreen_check.toggled.connect(_on_fullscreen_toggled)
+	settings_content.add_child(_fullscreen_check)
+	_vsync_check = CheckBox.new()
+	_vsync_check.text = "V-Sync"
+	_vsync_check.toggled.connect(_on_vsync_toggled)
+	settings_content.add_child(_vsync_check)
+	_add_setting_label(settings_content, "MOUSE SENSITIVITY")
+	_sensitivity_slider = HSlider.new()
+	_sensitivity_slider.min_value = 0.0003
+	_sensitivity_slider.max_value = 0.006
+	_sensitivity_slider.step = 0.0001
+	_sensitivity_slider.value_changed.connect(_on_sensitivity_changed)
+	settings_content.add_child(_sensitivity_slider)
+	_add_setting_label(settings_content, "MASTER VOLUME")
+	_volume_slider = HSlider.new()
+	_volume_slider.min_value = 0.0
+	_volume_slider.max_value = 1.0
+	_volume_slider.step = 0.01
+	_volume_slider.value_changed.connect(_on_volume_changed)
+	settings_content.add_child(_volume_slider)
 	var close := Button.new()
 	close.text = "CLOSE"
-	close.custom_minimum_size.y = 40
+	close.custom_minimum_size.y = 38
 	close.pressed.connect(_toggle_settings)
 	settings_content.add_child(close)
+	_sync_settings_ui()
 
 	_status_label = Label.new()
 	_status_label.text = "READY  //  TRAINING DISTRICT AVAILABLE"
@@ -169,8 +206,47 @@ func _start_game() -> void:
 func _toggle_settings() -> void:
 	settings_open = not settings_open
 	_settings_panel.visible = settings_open
+	if settings_open:
+		_sync_settings_ui()
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	if _status_label:
-		_status_label.text = "SETTINGS OPEN  //  MOVEMENT KEYS SHOWN" if settings_open else "READY  //  TRAINING DISTRICT AVAILABLE"
+		_status_label.text = "SETTINGS OPEN  //  CHANGES SAVE AUTOMATICALLY" if settings_open else "READY  //  TRAINING DISTRICT AVAILABLE"
+
+func _add_setting_label(parent: VBoxContainer, caption: String) -> void:
+	var label := Label.new()
+	label.text = caption
+	label.add_theme_font_size_override("font_size", 11)
+	label.add_theme_color_override("font_color", Color("#d7a45b"))
+	parent.add_child(label)
+
+func _sync_settings_ui() -> void:
+	var settings = get_node("/root/FlatSettings")
+	_quality_option.select(maxi(0, ["Low", "Medium", "High", "Ultra 4K"].find(settings.graphics_quality)))
+	_resolution_option.select(maxi(0, ["1920x1080", "2560x1440", "3840x2160"].find(settings.resolution)))
+	_fullscreen_check.set_pressed_no_signal(settings.fullscreen)
+	_vsync_check.set_pressed_no_signal(settings.vsync_enabled)
+	_sensitivity_slider.set_value_no_signal(settings.mouse_sensitivity)
+	_volume_slider.set_value_no_signal(settings.master_volume)
+
+func _on_quality_selected(index: int) -> void:
+	get_node("/root/FlatSettings").set_quality(_quality_option.get_item_text(index))
+	_sync_settings_ui()
+
+func _on_resolution_selected(index: int) -> void:
+	get_node("/root/FlatSettings").set_resolution(_resolution_option.get_item_text(index))
+	_sync_settings_ui()
+
+func _on_fullscreen_toggled(value: bool) -> void:
+	get_node("/root/FlatSettings").set_fullscreen(value)
+
+func _on_vsync_toggled(value: bool) -> void:
+	get_node("/root/FlatSettings").set_vsync(value)
+
+func _on_sensitivity_changed(value: float) -> void:
+	get_node("/root/FlatSettings").set_mouse_sensitivity(value)
+
+func _on_volume_changed(value: float) -> void:
+	get_node("/root/FlatSettings").set_master_volume(value)
 
 func _quit_game() -> void:
 	get_tree().quit()
