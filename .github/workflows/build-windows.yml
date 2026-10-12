@@ -24,6 +24,7 @@ jobs:
           test -f project.godot
           test -f scenes/main_menu.tscn
           test -f scripts/main_menu.gd
+          test -f scripts/game_settings.gd
           test -f scenes/test_map.tscn
           test -f scenes/player.tscn
           test -f scripts/player_controller.gd
