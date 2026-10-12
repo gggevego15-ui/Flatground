@@ -111,7 +111,7 @@ func _build_city() -> void:
 			# Flat roof parapet and subtle cornice.
 			_box(self, "RoofParapet", Vector3(x, height + 0.35, z), Vector3(width + 0.15, 0.7, 17.15), concrete)
 			# Window grids face the street, using dark frames and muted reflective glass.
-			var front_x := side * (14.02)
+			var front_x := side * 19.05
 			for floor_index in range(maxi(2, int(height / 3.0))):
 				var wy := 1.9 + floor_index * 2.8
 				if wy > height - 1.0:
@@ -122,16 +122,16 @@ func _build_city() -> void:
 					_box(self, "WindowGlass", Vector3(front_x - side * 0.09, wy, wz), Vector3(0.04, 1.22, 1.48), glass, Vector3.ZERO, false)
 					_box(self, "WindowSill", Vector3(front_x - side * 0.12, wy - 0.82, wz), Vector3(0.22, 0.12, 1.9), curb, Vector3.ZERO, false)
 			# Ground-floor storefronts and understated signage panels (no emissive/neon).
-			_box(self, "ShopfrontGlass", Vector3(side * 14.03, 1.45, z - 3.0), Vector3(0.12, 2.5, 3.2), glass, Vector3.ZERO, false)
-			_box(self, "ShopDoor", Vector3(side * 14.0, 1.25, z + 1.5), Vector3(0.18, 2.3, 1.0), dark_metal, Vector3.ZERO, false)
-			_box(self, "ShopSign", Vector3(side * 14.0, 3.1, z - 2.8), Vector3(0.22, 0.55, 4.0), wood, Vector3.ZERO, false)
+			_box(self, "ShopfrontGlass", Vector3(side * 19.03, 1.45, z - 3.0), Vector3(0.12, 2.5, 3.2), glass, Vector3.ZERO, false)
+			_box(self, "ShopDoor", Vector3(side * 19.0, 1.25, z + 1.5), Vector3(0.18, 2.3, 1.0), dark_metal, Vector3.ZERO, false)
+			_box(self, "ShopSign", Vector3(side * 19.0, 3.1, z - 2.8), Vector3(0.22, 0.55, 4.0), wood, Vector3.ZERO, false)
 			# Fire escape platforms, rails, and ladder-like side detail.
 			if block % 2 == 0:
 				for level in range(2):
 					var fy := 3.6 + level * 3.0
-					_box(self, "FireEscapeLanding", Vector3(side * 14.55, fy, z + 5.8), Vector3(1.0, 0.12, 4.0), dark_metal, Vector3.ZERO, false)
-					_box(self, "FireEscapeRail", Vector3(side * 14.55, fy + 0.55, z + 3.85), Vector3(1.0, 0.08, 0.08), dark_metal, Vector3.ZERO, false)
-					_box(self, "FireEscapeRail", Vector3(side * 14.55, fy + 0.55, z + 7.75), Vector3(1.0, 0.08, 0.08), dark_metal, Vector3.ZERO, false)
+					_box(self, "FireEscapeLanding", Vector3(side * 19.55, fy, z + 5.8), Vector3(1.0, 0.12, 4.0), dark_metal, Vector3.ZERO, false)
+					_box(self, "FireEscapeRail", Vector3(side * 19.55, fy + 0.55, z + 3.85), Vector3(1.0, 0.08, 0.08), dark_metal, Vector3.ZERO, false)
+					_box(self, "FireEscapeRail", Vector3(side * 19.55, fy + 0.55, z + 7.75), Vector3(1.0, 0.08, 0.08), dark_metal, Vector3.ZERO, false)
 
 	# Street furniture, bins, trees, bollards, and warm-white street lamps.
 	for z in range(-40, 46, 12):
