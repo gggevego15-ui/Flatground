@@ -283,34 +283,15 @@ func _near_ladder() -> bool:
 
 
 func _build_character_model() -> void:
-	# Head is omitted so the first-person camera never clips inside the face.
-	var uniform := StandardMaterial3D.new()
-	uniform.albedo_color = Color(0.19, 0.22, 0.23)
-	uniform.roughness = 0.94
-	var trousers := StandardMaterial3D.new()
-	trousers.albedo_color = Color(0.12, 0.14, 0.15)
-	trousers.roughness = 0.98
-	var boots := StandardMaterial3D.new()
-	boots.albedo_color = Color(0.07, 0.075, 0.075)
-	boots.roughness = 0.92
-	var skin := StandardMaterial3D.new()
-	skin.albedo_color = Color(0.62, 0.43, 0.31)
-	skin.roughness = 0.88
-	_add_body_box("Torso", Vector3(0, 1.12, 0.04), Vector3(0.48, 0.58, 0.27), uniform)
-	_add_body_box("Pelvis", Vector3(0, 0.78, 0.04), Vector3(0.38, 0.2, 0.25), trousers)
-	for side in [-1.0, 1.0]:
-		_add_body_box("UpperLeg", Vector3(side * 0.115, 0.48, 0.04), Vector3(0.17, 0.48, 0.2), trousers)
-		_add_body_box("Boot", Vector3(side * 0.115, 0.12, -0.025), Vector3(0.18, 0.2, 0.29), boots)
-		_add_body_box("Sleeve", Vector3(side * 0.31, 1.12, 0.04), Vector3(0.16, 0.48, 0.19), uniform)
-		_add_body_box("Hand", Vector3(side * 0.32, 0.86, -0.005), Vector3(0.12, 0.14, 0.13), skin)
-
-
-func _add_body_box(label: String, pos: Vector3, size: Vector3, material: Material) -> void:
-	var mesh := MeshInstance3D.new()
-	mesh.name = label
-	var box := BoxMesh.new()
-	box.size = size
-	mesh.mesh = box
-	mesh.material_override = material
-	mesh.position = pos
-	add_child(mesh)
+	# Intentionally simple block character, as requested.
+	var block_material := StandardMaterial3D.new()
+	block_material.albedo_color = Color(0.22, 0.25, 0.26)
+	block_material.roughness = 0.92
+	var block_mesh := MeshInstance3D.new()
+	block_mesh.name = "PlayerBlock"
+	var block := BoxMesh.new()
+	block.size = Vector3(0.52, 0.52, 0.52)
+	block_mesh.mesh = block
+	block_mesh.material_override = block_material
+	block_mesh.position = Vector3(0.0, 0.92, -0.03)
+	add_child(block_mesh)
