@@ -106,37 +106,43 @@ func _build_city() -> void:
 	var foliage := _material(Color(0.43, 0.52, 0.35), 0.96, 0.0, 1.2)
 
 	# Broad street and sidewalks form the central traversal corridor.
-	_box(self, "RoadSurface", Vector3(0, -0.18, 0), Vector3(24, 0.35, 110), asphalt)
-	_box(self, "WestSidewalk", Vector3(-14.2, -0.02, 0), Vector3(4.4, 0.45, 110), concrete)
+	_box(self, "RoadSurface", Vector3(0, -0.18, 0), Vector3(24, 0.35, 550), asphalt)
+	_box(self, "WestSidewalk", Vector3(-14.2, -0.02, 0), Vector3(4.4, 0.45, 550), concrete)
 	_box(self, "EastSidewalk", Vector3(14.2, -0.02, 0), Vector3(4.4, 0.45, 110), concrete)
-	_box(self, "WestCurb", Vector3(-12.05, 0.08, 0), Vector3(0.22, 0.25, 110), curb)
+	_box(self, "WestCurb", Vector3(-12.05, 0.08, 0), Vector3(0.22, 0.25, 550), curb)
 	_box(self, "EastCurb", Vector3(12.05, 0.08, 0), Vector3(0.22, 0.25, 110), curb)
-	for z in range(-50, 51, 5):
+	for z in range(-270, 271, 5):
 		_box(self, "CenterRoadDash", Vector3(0, 0.002, z), Vector3(0.13, 0.025, 2.2), white, Vector3.ZERO, false)
 	# Crosswalk at the central junction.
 	for i in range(9):
 		_box(self, "CrosswalkStripe", Vector3(-4.8 + i * 1.2, 0.015, 5), Vector3(0.72, 0.025, 3.0), white, Vector3.ZERO, false)
+	# Repeat marked intersections along the extended route so navigation has landmarks.
+	for crossing_z in range(-240, 241, 80):
+		if crossing_z == 0:
+			continue
+		for stripe_index in range(9):
+			_box(self, "CrosswalkStripe", Vector3(-4.8 + stripe_index * 1.2, 0.015, float(crossing_z)), Vector3(0.72, 0.025, 3.0), white, Vector3.ZERO, false)
 
 	# Small-scale street wear: repaired asphalt, cracks, manholes and drainage.
 	var asphalt_patch := _material(Color(0.25, 0.26, 0.25), 0.99, 0.0, 4.2)
 	var crack_mat := _material(Color(0.12, 0.13, 0.12), 1.0, 0.0, 1.0)
 	var iron := _material(Color(0.20, 0.22, 0.22), 0.72, 0.35, 1.0)
-	for patch_index in range(8):
-		var pz := -39.0 + float(patch_index) * 10.5
+	for patch_index in range(40):
+		var pz := -258.0 + float(patch_index) * 13.2
 		var px := -7.0 if patch_index % 2 == 0 else 6.0
 		_box(self, "AsphaltRepairPatch", Vector3(px, 0.004, pz), Vector3(2.4 + float(patch_index % 3) * 0.6, 0.018, 1.1), asphalt_patch, Vector3(0, deg_to_rad(float((patch_index % 3) - 1) * 7.0), 0), false)
-	for crack_index in range(18):
-		var cz := -47.0 + float(crack_index) * 5.1
+	for crack_index in range(100):
+		var cz := -267.0 + float(crack_index) * 5.35
 		var cx := -8.0 + float((crack_index * 7) % 15)
 		_box(self, "AsphaltHairlineCrack", Vector3(cx, 0.009, cz), Vector3(0.035, 0.012, 0.75 + float(crack_index % 4) * 0.22), crack_mat, Vector3(0, deg_to_rad(float((crack_index * 31) % 50 - 25)), 0), false)
-	for drain_index in range(7):
-		var dz := -42.0 + float(drain_index) * 14.0
+	for drain_index in range(39):
+		var dz := -266.0 + float(drain_index) * 14.0
 		for side in [-1.0, 1.0]:
 			_box(self, "StormDrainFrame", Vector3(side * 11.72, 0.215, dz), Vector3(0.34, 0.035, 1.25), iron, Vector3.ZERO, false)
 			for slot in range(7):
 				_box(self, "StormDrainSlot", Vector3(side * 11.72, 0.237, dz - 0.48 + float(slot) * 0.16), Vector3(0.25, 0.012, 0.045), crack_mat, Vector3.ZERO, false)
-	for manhole_index in range(4):
-		var mz := -32.0 + float(manhole_index) * 22.0
+	for manhole_index in range(24):
+		var mz := -253.0 + float(manhole_index) * 22.0
 		var cover := MeshInstance3D.new()
 		var disk := CylinderMesh.new()
 		disk.top_radius = 0.48
@@ -152,8 +158,8 @@ func _build_city() -> void:
 
 	# Concrete sidewalk expansion joints and tactile warning strips at crossing corners.
 	var joint_mat := _material(Color(0.48, 0.47, 0.43), 0.98, 0.0, 1.0)
-	for joint_index in range(22):
-		var jz := -52.0 + float(joint_index) * 4.8
+	for joint_index in range(110):
+		var jz := -272.0 + float(joint_index) * 4.98
 		for side in [-1.0, 1.0]:
 			_box(self, "SidewalkExpansionJoint", Vector3(side * 14.2, 0.211, jz), Vector3(4.1, 0.009, 0.035), joint_mat, Vector3.ZERO, false)
 	for side in [-1.0, 1.0]:
@@ -173,8 +179,8 @@ func _build_city() -> void:
 	# Three blocks of varied mid-rise buildings on each side, with repetitive but varied facades.
 	var facades: Array[Material] = [brick_a, brick_b, plaster, concrete]
 	for side in [-1.0, 1.0]:
-		for block in range(5):
-			var z := -40.0 + float(block) * 20.0
+		for block in range(25):
+			var z := -240.0 + float(block) * 20.0
 			var width := 10.0 + float(block % 3) * 1.5
 			var height := 10.0 + float((block + 1) % 3) * 3.5
 			var x := side * (19.0 + width * 0.5)
@@ -212,7 +218,7 @@ func _build_city() -> void:
 					_box(self, "FireEscapeRail", Vector3(side * 19.55, fy + 0.55, z + 7.75), Vector3(1.0, 0.08, 0.08), dark_metal, Vector3.ZERO, false)
 
 	# Street furniture, bins, trees, bollards, and warm-white street lamps.
-	for z in range(-40, 46, 12):
+	for z in range(-256, 257, 12):
 		for side in [-1.0, 1.0]:
 			var x := side * 14.5
 			_box(self, "TreeTrunk", Vector3(x, 1.0, z), Vector3(0.35, 2.0, 0.35), wood)
