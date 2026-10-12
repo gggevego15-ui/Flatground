@@ -99,7 +99,7 @@ func _build_menu() -> void:
 	_add_button(left, "QUIT TO DESKTOP", _quit_game, false)
 
 	_settings_panel = PanelContainer.new()
-	_settings_panel.position = Vector2(480, 190)
+	_settings_panel.position = Vector2(480, 100)
 	_settings_panel.size = Vector2(380, 250)
 	_settings_panel.visible = false
 	var panel_style := StyleBoxFlat.new()
