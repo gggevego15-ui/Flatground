@@ -13,10 +13,12 @@ extends CharacterBody3D
 @export var gravity := 20.0
 @export var slide_friction := 2.2
 @export var slide_boost := 1.12
-@export var air_wishspeed_cap := 8.0
-@export var air_acceleration_gain := 18.0
-@export var bunnyhop_speed_retention := 0.98
-@export var ground_jump_friction_scale := 0.08
+@export var air_wishspeed_cap := 9.5
+@export var air_acceleration_gain := 12.0
+@export var bunnyhop_speed_retention := 0.995
+@export var ground_jump_friction_scale := 0.0
+@export var coyote_time := 0.10
+@export var jump_buffer_time := 0.12
 @export var crouch_transition_speed := 14.0
 @export var slide_min_speed := 4.2
 @export var slide_steering := 1.4
@@ -56,6 +58,8 @@ var was_on_floor := false
 var slide_active := false
 var slide_speed := 0.0
 var crouch_blocked := false
+var coyote_timer := 0.0
+var jump_buffer_timer := 0.0
 
 func _ready() -> void:
 	_add_action("move_forward", [KEY_W, KEY_UP])
@@ -92,6 +96,15 @@ func _unhandled_input(event: InputEvent) -> void:
 func _physics_process(delta: float) -> void:
 	var grounded := is_on_floor()
 	var jump_held := Input.is_action_pressed("jump")
+	if grounded:
+		coyote_timer = coyote_time
+	else:
+		coyote_timer = maxf(0.0, coyote_timer - delta)
+	if Input.is_action_just_pressed("jump"):
+		jump_buffer_timer = jump_buffer_time
+	else:
+		jump_buffer_timer = maxf(0.0, jump_buffer_timer - delta)
+	var jump_requested := jump_held or jump_buffer_timer > 0.0
 	var crouch_requested := Input.is_action_pressed("crouch")
 	var crouching := crouch_requested or not _can_stand_up()
 	crouch_blocked = not crouch_requested and not _can_stand_up()
@@ -117,7 +130,7 @@ func _physics_process(delta: float) -> void:
 			landing_offset = landing_kick * impact
 			landing_velocity = landing_recovery * impact * 0.08
 
-		if crouching and horizontal_speed > slide_min_speed and not jump_held:
+		if crouching and horizontal_speed > slide_min_speed and not jump_requested:
 			if not slide_active:
 				slide_active = true
 				slide_speed = horizontal_speed * slide_boost
@@ -130,8 +143,8 @@ func _physics_process(delta: float) -> void:
 		else:
 			slide_active = false
 			var target_speed := crouch_speed if crouching else (sprint_speed if sprinting else walk_speed)
-			if jump_held:
-				# Preserve most horizontal momentum on a perfectly timed hop.
+			if jump_requested:
+				# Auto-bhop preserves momentum; the short input buffer also catches early taps.
 				horizontal = horizontal.move_toward(Vector3.ZERO, ground_friction * ground_jump_friction_scale * delta)
 			elif wish_dir.length_squared() > 0.001:
 				horizontal = _ground_accelerate(horizontal, wish_dir, target_speed, ground_acceleration, delta)
@@ -140,8 +153,10 @@ func _physics_process(delta: float) -> void:
 
 		velocity.x = horizontal.x
 		velocity.z = horizontal.z
-		if jump_held:
+		if jump_requested:
 			velocity.y = jump_velocity
+			jump_buffer_timer = 0.0
+			coyote_timer = 0.0
 			slide_active = false
 			# Avoid a sudden speed drop at take-off while keeping tiny losses stable.
 			if horizontal.length() > sprint_speed:
@@ -150,7 +165,14 @@ func _physics_process(delta: float) -> void:
 				velocity.z = horizontal.z
 	else:
 		slide_active = false
-		velocity.y -= gravity * delta
+		# A brief coyote window forgives tiny ledge timing errors. Buffered jumps
+		# are consumed once, so a tap just before landing is not lost.
+		if jump_buffer_timer > 0.0 and coyote_timer > 0.0:
+			velocity.y = jump_velocity
+			jump_buffer_timer = 0.0
+			coyote_timer = 0.0
+		else:
+			velocity.y -= gravity * delta
 		if wish_dir.length_squared() > 0.001:
 			# Quake-style air acceleration: accelerate along the desired direction,
 			# rather than pulling the whole velocity vector toward a fixed target.
