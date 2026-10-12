@@ -202,13 +202,13 @@ func _build_city() -> void:
 			var z := -240.0 + float(block) * 20.0
 			var width := 10.0 + float(block % 3) * 1.5
 			var height := 10.0 + float((block + 1) % 3) * 3.5
-			var x := side * (19.0 + width * 0.5)
+			var x: float = side * (19.0 + width * 0.5)
 			var facade: Material = facades[(block + (1 if side > 0 else 0)) % facades.size()]
 			_box(self, "Building_%s_%02d" % ["E" if side > 0 else "W", block], Vector3(x, height * 0.5 - 0.02, z), Vector3(width, height, 17.0), facade)
 			# Flat roof parapet and subtle cornice.
 			_box(self, "RoofParapet", Vector3(x, height + 0.35, z), Vector3(width + 0.15, 0.7, 17.15), concrete)
 			# Window grids face the street, using dark frames and muted reflective glass.
-			var front_x := side * 19.05
+			var front_x: float = side * 19.05
 			for floor_index in range(maxi(2, int(height / 3.0))):
 				var wy := 1.9 + floor_index * 2.8
 				if wy > height - 1.0:
@@ -239,7 +239,7 @@ func _build_city() -> void:
 	# Street furniture, bins, trees, bollards, and warm-white street lamps.
 	for z in range(-256, 257, 12):
 		for side in [-1.0, 1.0]:
-			var x := side * 14.5
+			var x: float = side * 14.5
 			_box(self, "TreeTrunk", Vector3(x, 1.0, z), Vector3(0.35, 2.0, 0.35), wood)
 			var crown := MeshInstance3D.new()
 			var sphere := SphereMesh.new()
